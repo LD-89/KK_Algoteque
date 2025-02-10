@@ -1,5 +1,7 @@
 import json
+import logging
 
+logger = logging.getLogger(__name__)
 SINGLE_TOPIC_PRICING_VALUES = {
     0: 20,
     1: 25,
@@ -12,8 +14,22 @@ class QuotesCalculator:
         """
         Initialize the QuotesCalculator with providers data from a JSON file.
         """
-        with open('static/providers.json') as f:
-            self.providers_data = json.load(f)
+        try:
+            with open('static/providers.json') as f:
+                self.providers_data = json.load(f)
+
+            if not isinstance(self.providers_data, dict) or 'provider_topics' not in self.providers_data:
+                raise ValueError("Invalid providers.json contents")
+
+        except FileNotFoundError as e:
+            logger.critical("File missing: static/providers.json")
+            raise RuntimeError("Service initialization error") from e
+        except json.JSONDecodeError as e:
+            logger.error("Invalid JSON file: static/providers.jso", exc_info=True)
+            raise ValueError("Invalid JSON format file") from e
+        except Exception as e:
+            logger.error("Unexpected error", exc_info=True)
+            raise
 
     def _compare_topics(self, topics: str, top_topics: list):
         """
